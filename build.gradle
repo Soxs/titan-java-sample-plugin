@@ -39,7 +39,7 @@ tasks.named('jar') {
     archiveFileName = 'titan-sample-plugin.jar'
 }
 
-def titanClientRoot = providers.gradleProperty('titanClientRoot')
+def titanClientRootProvider = providers.gradleProperty('titanClientRoot')
     .orElse(providers.environmentVariable('TITAN_CLIENT_ROOT'))
 def titanPluginDir = file(providers.gradleProperty('titanPluginDir')
     .orElse(providers.environmentVariable('TITAN_PLUGIN_DIR'))
@@ -62,15 +62,22 @@ tasks.register('runTitanClient', Exec) {
     description = 'Stage this sample and launch the installed TitanClient in DEV mode.'
     dependsOn tasks.named('stagePlugin')
     doFirst {
-        if (!titanClientRoot.isPresent()) {
+        def titanClientRoot = titanClientRootProvider.orNull
+        if (!titanClientRoot) {
             throw new GradleException(
                 'Set TITAN_CLIENT_ROOT or -PtitanClientRoot to the directory containing controller.exe.')
         }
-        def controller = new File(titanClientRoot.get(), 'controller.exe')
+        def controller = new File(titanClientRoot, 'controller.exe')
         if (!controller.isFile()) {
             throw new GradleException("TitanClient controller.exe not found at ${controller}")
         }
         workingDir controller.parentFile
         commandLine controller, '--dev-mode', '--launch-new-client'
     }
+}
+
+tasks.register('runViaTitan') {
+    group = 'titan dev'
+    description = 'Alias for runTitanClient.'
+    dependsOn tasks.named('runTitanClient')
 }

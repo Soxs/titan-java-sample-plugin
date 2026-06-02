@@ -76,6 +76,8 @@ Then run:
 .\gradlew.bat runTitanClient
 ```
 
+`runViaTitan` is also available as an alias for the same task.
+
 The task builds the sample, copies it to
 `%USERPROFILE%\.titanclient\plugins`, and launches:
 
