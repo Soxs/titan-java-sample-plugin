@@ -70,6 +70,12 @@ folder that directly contains `controller.exe`:
 titanClientRoot=C:/Program Files/TitanClient
 ```
 
+That TitanClient folder must include the Java worker runtime at:
+
+```text
+java/titan-java-worker.jar
+```
+
 Then run either task:
 
 ```powershell
@@ -93,10 +99,12 @@ $env:TITAN_CLIENT_ROOT = "C:\Program Files\TitanClient"
 ```
 
 For a local TitanClient source build, build `controller` first and use the
-build output folder, for example:
+build output folder. Make sure Java runtime staging is enabled:
 
 ```powershell
-.\gradlew.bat runViaTitan "-PtitanClientRoot=C:\path\to\SoxClientOSRS\build\controller\Debug"
+cmake -S . -B build -DTITAN_BUILD_JAVA_RUNTIME=ON
+cmake --build build --config Release --target controller
+.\gradlew.bat runViaTitan "-PtitanClientRoot=C:\path\to\SoxClientOSRS\build\controller\Release"
 ```
 
 `runViaTitan` is an alias for `runTitanClient`.
