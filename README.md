@@ -19,15 +19,17 @@ This repository demonstrates:
 The sample uses the published SDK dependency:
 
 ```gradle
+repositories {
+    maven { url = uri('https://raw.githubusercontent.com/Soxs/titan-plugin-sdk/main/maven/releases') }
+    mavenCentral()
+}
+
 compileOnly 'net.titan:titan-plugin-api:0.1.0'
 ```
 
-Until the SDK is available from Maven Central, configure the Titan Maven
-repository:
-
-```powershell
-setx TITAN_MAVEN_REPOSITORY_URL "https://repo.example.com/releases"
-```
+The sample already points at the public Titan SDK Maven repository. Pass
+`-PtitanMavenRepositoryUrl=...` or set `TITAN_MAVEN_REPOSITORY_URL` only when
+testing another repository.
 
 For local SDK work, publish from the SDK checkout first:
 

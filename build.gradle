@@ -10,15 +10,15 @@ def titanSdkVersion = providers.gradleProperty('titanSdkVersion')
     .get()
 def titanRepositoryUrl = providers.gradleProperty('titanMavenRepositoryUrl')
     .orElse(providers.environmentVariable('TITAN_MAVEN_REPOSITORY_URL'))
+    .orElse('https://raw.githubusercontent.com/Soxs/titan-plugin-sdk/main/maven/releases')
 
 repositories {
     mavenLocal()
-    mavenCentral()
-    if (titanRepositoryUrl.isPresent()) {
-        maven {
-            url = uri(titanRepositoryUrl.get())
-        }
+    maven {
+        name = 'titan'
+        url = uri(titanRepositoryUrl.get())
     }
+    mavenCentral()
 }
 
 dependencies {
