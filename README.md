@@ -63,20 +63,43 @@ build\libs\titan-sample-plugin.jar
 
 ## Run In TitanClient
 
-Set `TITAN_CLIENT_ROOT` to the installed directory containing
-`controller.exe`:
+Edit the included `gradle.properties` file and set `titanClientRoot` to the
+folder that directly contains `controller.exe`:
 
-```powershell
-setx TITAN_CLIENT_ROOT "C:\Program Files\TitanClient"
+```properties
+titanClientRoot=C:/Program Files/TitanClient
 ```
 
-Then run:
+Then run either task:
 
 ```powershell
-.\gradlew.bat runTitanClient
+.\gradlew.bat runViaTitan
 ```
 
-`runViaTitan` is also available as an alias for the same task.
+`runTitanClient`/`runViaTitan` will also try common TitanClient install folders
+and local source-build output folders if `titanClientRoot` is left blank.
+
+You can still use a one-off Gradle property:
+
+```powershell
+.\gradlew.bat runViaTitan "-PtitanClientRoot=C:\Program Files\TitanClient"
+```
+
+Or set it for the current PowerShell session:
+
+```powershell
+$env:TITAN_CLIENT_ROOT = "C:\Program Files\TitanClient"
+.\gradlew.bat runViaTitan
+```
+
+For a local TitanClient source build, build `controller` first and use the
+build output folder, for example:
+
+```powershell
+.\gradlew.bat runViaTitan "-PtitanClientRoot=C:\path\to\SoxClientOSRS\build\controller\Debug"
+```
+
+`runViaTitan` is an alias for `runTitanClient`.
 
 The task builds the sample, copies it to
 `%USERPROFILE%\.titanclient\plugins`, and launches:
