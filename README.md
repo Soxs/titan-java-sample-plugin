@@ -29,7 +29,7 @@ The sample uses the published SDK dependency:
 
 ```gradle
 repositories {
-    maven { url = uri('https://raw.githubusercontent.com/Soxs/titan-plugin-sdk/main/maven/releases') }
+    maven { url = uri('https://raw.githubusercontent.com/Soxs/titan-public-sdk/main/maven/releases') }
     mavenCentral()
 }
 
@@ -43,7 +43,7 @@ testing another repository.
 For local SDK work, publish from the SDK checkout first:
 
 ```powershell
-cd path\to\titan-plugin-sdk\java
+cd path\to\titan-public-sdk\java
 .\gradlew.bat publishToMavenLocal
 ```
 
