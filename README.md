@@ -1,6 +1,6 @@
 # Titan Java Sample Plugin
 
-Runnable sample plugin for TitanClient's Java SDK.
+Runnable sample plugin and starter project for TitanClient's Java SDK.
 
 This repository demonstrates:
 
@@ -9,6 +9,15 @@ This repository demonstrates:
 - RuneLite-style config interfaces.
 - Event subscriptions through `@Subscribe`.
 - Direct `Client` accessors such as `client.tick()` and `client.localPlayer()`.
+
+## Use This As Your Plugin Starter
+
+Copy or fork this repository for a new Java plugin. Then:
+
+1. Rename the `net.titan.sample` package and classes.
+2. Update `@PluginDescriptor` with your plugin ID, name, author, and version.
+3. Update `SamplePluginConfig` or replace it with your own config interface.
+4. Change the output JAR name in `build.gradle`.
 
 ## Requirements
 
