@@ -22,7 +22,7 @@ Copy or fork this repository for a new Java plugin. Then:
 ## Requirements
 
 - Java 11 or newer.
-- TitanClient installed with the Java worker runtime.
+- TitanClient installed with the embedded Java runtime.
 - A TitanClient account with the `feature.debug_mode` entitlement.
 
 The sample uses the published SDK dependency:
@@ -70,10 +70,10 @@ folder that directly contains `controller.exe`:
 titanClientRoot=C:/Program Files/TitanClient
 ```
 
-That TitanClient folder must include the Java worker runtime at:
+That TitanClient folder must include the embedded Java runtime at:
 
 ```text
-java/titan-java-worker.jar
+java/titan-java-embedded.jar
 ```
 
 Then run either task:
