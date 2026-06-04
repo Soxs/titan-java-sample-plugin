@@ -8,6 +8,7 @@ import net.titan.api.events.ConfigChanged;
 import net.titan.api.events.GameTick;
 import net.titan.api.plugins.Plugin;
 import net.titan.api.plugins.PluginDescriptor;
+import net.titan.api.queries.Queries;
 
 @PluginDescriptor(
     id = "java_sample",
@@ -48,6 +49,7 @@ public final class SamplePlugin implements Plugin {
         String player = client.localPlayer()
             .map(value -> value.name())
             .orElse("<not logged in>");
-        logger.info("Tick " + client.tick() + " localPlayer=" + player);
+        int npcCount = Queries.npcs().count();
+        logger.info("Tick " + client.tick() + " localPlayer=" + player + " npcs=" + npcCount);
     }
 }
