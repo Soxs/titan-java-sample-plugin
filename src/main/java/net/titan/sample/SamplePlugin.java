@@ -2,6 +2,7 @@ package net.titan.sample;
 
 import com.google.inject.Inject;
 import net.titan.api.Client;
+import net.titan.api.ItemDefinition;
 import net.titan.api.Logger;
 import net.titan.api.NPC;
 import net.titan.api.eventbus.Subscribe;
@@ -67,13 +68,24 @@ public final class SamplePlugin implements Plugin {
             .orElse("<not logged in>");
         int npcCount = Queries.npcs().count();
         logger.info("Tick " + client.tick() + " localPlayer=" + player + " npcs=" + npcCount);
+
+        // Exercise a cache-definition bridge call using the combo setting.
+        int watchedId = config.watchedItem().itemId();
+        String watchedName = client.itemDefinition(watchedId)
+            .map(ItemDefinition::name)
+            .orElse("<unknown>");
+        logger.info("Watched item " + watchedId + " = " + watchedName);
     }
 
     @Override
     public void renderOverlay(OverlayLayer layer) {
         if (layer == OverlayLayer.ABOVE_SCENE) {
-            Optional<NPC> nearest = Queries.npcs().nearest();
-            nearest.ifPresent(npc -> Overlay.draw().entityHull(npc, 0xFF00FF00, 0x3300FF00));
+            int hull = config.highlightColor();
+            int fill = (hull & 0x00FFFFFF) | 0x33000000;
+            int radius = config.maxNpcDistance();
+            Optional<NPC> nearest = client.localPlayer()
+                .flatMap(self -> Queries.npcs().within(radius, self).nearestTo(self));
+            nearest.ifPresent(npc -> Overlay.draw().entityHull(npc, hull, fill));
             return;
         }
 
