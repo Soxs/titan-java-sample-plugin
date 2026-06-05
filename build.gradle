@@ -35,6 +35,27 @@ tasks.withType(JavaCompile).configureEach {
     options.release = 11
 }
 
+// Plugin IDs declared by this JAR -- one per @PluginDescriptor class.
+// Multi-plugin JARs list all IDs here; the store reads META-INF/titan-plugins
+// to know which slugs a single artifact satisfies.
+ext.titanPluginIds = ['java_sample']
+
+def generatedResources = layout.buildDirectory.dir('generated/resources/titan')
+
+tasks.register('generateTitanManifest') {
+    def outputDir = generatedResources
+    inputs.property('pluginIds', titanPluginIds)
+    outputs.dir(outputDir)
+    doLast {
+        def metaInf = outputDir.get().dir('META-INF').asFile
+        metaInf.mkdirs()
+        new File(metaInf, 'titan-plugins').text = titanPluginIds.join('\n') + '\n'
+    }
+}
+
+sourceSets.main.resources.srcDir(generatedResources)
+tasks.named('processResources') { dependsOn 'generateTitanManifest' }
+
 tasks.named('jar') {
     archiveFileName = 'titan-sample-plugin.jar'
 }
