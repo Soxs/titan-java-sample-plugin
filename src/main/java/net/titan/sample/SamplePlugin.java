@@ -12,8 +12,11 @@ import net.titan.api.overlay.Overlay;
 import net.titan.api.overlay.OverlayLayer;
 import net.titan.api.overlay.OverlayPanel;
 import net.titan.api.overlay.OverlayPanelAnchor;
+import net.titan.api.panel.Panel;
+import net.titan.api.panel.PanelValue;
 import net.titan.api.plugins.Plugin;
 import net.titan.api.plugins.PluginDescriptor;
+import net.titan.api.plugins.SidePanel;
 import net.titan.api.queries.Queries;
 import net.titan.api.utils.Inventory;
 
@@ -27,7 +30,14 @@ import java.util.Optional;
     version = "0.1.0",
     config = SamplePluginConfig.class
 )
+@SidePanel(id = "main", title = "Java Sample", icon = "\uf1b2")
+@SidePanel(id = "about", title = "About", icon = "\uf05a")
 public final class SamplePlugin implements Plugin {
+    // Panel action ids (unique within each panel).
+    private static final int ACTION_LOG_STATE = 1;
+    private static final int ACTION_VERBOSE = 2;
+
+    private int panelClicks;
     private final OverlayPanel statusPanel = new OverlayPanel(
         "status", OverlayPanelAnchor.TOP_CENTER, 50)
         .setPreferredWidth(240);
@@ -103,5 +113,47 @@ public final class SamplePlugin implements Plugin {
             inventoryPanel.line("Slots", Inventory.size() + "/" + Inventory.CAPACITY);
             inventoryPanel.progressBar(Inventory.size(), 0, Inventory.CAPACITY);
         });
+    }
+
+    @Override
+    public void buildPanel(String panelId, Panel panel) {
+        if ("about".equals(panelId)) {
+            panel.separatorText("Java Sample")
+                .wrapped("Demonstrates the Titan Java side-panel API with full "
+                    + "parity to native and TypeScript plugins.")
+                .spacing()
+                .label("Author", "Titan")
+                .label("Version", "0.1.0");
+            return;
+        }
+
+        String player = client.localPlayer()
+            .map(value -> value.name())
+            .orElse("<not logged in>");
+        panel.label("Player", player)
+            .label("Tick", Integer.toString(client.tick()))
+            .label("NPCs", Integer.toString(Queries.npcs().count()))
+            .separator()
+            .checkbox("Verbose logging", ACTION_VERBOSE, config.verbose())
+            .button("Log state now", ACTION_LOG_STATE)
+            .spacing()
+            .label("Panel clicks", Integer.toString(panelClicks));
+    }
+
+    @Override
+    public void onPanelAction(String panelId, int actionId, PanelValue value) {
+        if (!"main".equals(panelId)) return;
+        switch (actionId) {
+            case ACTION_LOG_STATE:
+                panelClicks++;
+                logger.info("Panel: tick=" + client.tick()
+                    + " npcs=" + Queries.npcs().count());
+                break;
+            case ACTION_VERBOSE:
+                logger.info("Panel toggled verbose=" + value.asBoolean());
+                break;
+            default:
+                break;
+        }
     }
 }
