@@ -38,7 +38,7 @@ compileOnly 'net.titan:titan-plugin-api:latest.release'
 
 The sample already points at the public Titan SDK Maven repository and defaults
 to `latest.release`. Pass `-PtitanSdkVersion=latest` for the same behavior, or
-pin an exact SDK version such as `-PtitanSdkVersion=0.1.2` for reproducible
+pin an exact SDK version such as `-PtitanSdkVersion=0.1.3` for reproducible
 plugin releases. Pass
 `-PtitanMavenRepositoryUrl=...` or set `TITAN_MAVEN_REPOSITORY_URL` only when
 testing another repository.

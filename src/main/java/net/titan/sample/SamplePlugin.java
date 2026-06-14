@@ -30,8 +30,8 @@ import java.util.Optional;
     version = "0.1.0",
     config = SamplePluginConfig.class
 )
-@SidePanel(id = "main", title = "Java Sample", icon = "\uf1b2")
-@SidePanel(id = "about", title = "About", icon = "\uf05a")
+@SidePanel(id = "main", title = "Java Sample", icon = "awesome:cube", iconColor = 0xFF68CC92)
+@SidePanel(id = "about", title = "About", icon = "lucide:info", iconColor = 0xFFBF98E3)
 public final class SamplePlugin implements Plugin {
     // Panel action ids (unique within each panel).
     private static final int ACTION_LOG_STATE = 1;
