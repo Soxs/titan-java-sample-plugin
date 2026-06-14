@@ -5,9 +5,22 @@ plugins {
 group = 'net.titan.plugins'
 version = '0.1.0'
 
-def titanSdkVersion = providers.gradleProperty('titanSdkVersion')
-    .orElse('0.1.0')
-    .get()
+def normalizeTitanSdkVersion = { String requested ->
+    def value = requested == null ? '' : requested.trim()
+    if (value.isEmpty() || value.equalsIgnoreCase('latest')) {
+        return 'latest.release'
+    }
+    return value
+}
+def isDynamicTitanSdkVersion = { String value ->
+    value == 'latest.release' ||
+        value == 'latest.integration' ||
+        value.contains('+') ||
+        value.startsWith('[') ||
+        value.startsWith('(')
+}
+def titanSdkVersion = normalizeTitanSdkVersion(
+    providers.gradleProperty('titanSdkVersion').orElse('latest.release').get())
 def titanRepositoryUrl = providers.gradleProperty('titanMavenRepositoryUrl')
     .orElse(providers.environmentVariable('TITAN_MAVEN_REPOSITORY_URL'))
     .orElse('https://raw.githubusercontent.com/Soxs/titan-public-sdk/main/maven/releases')
@@ -19,6 +32,12 @@ repositories {
         url = uri(titanRepositoryUrl.get())
     }
     mavenCentral()
+}
+
+configurations.configureEach {
+    if (isDynamicTitanSdkVersion(titanSdkVersion)) {
+        resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
+    }
 }
 
 dependencies {
