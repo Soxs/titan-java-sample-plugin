@@ -79,7 +79,7 @@ That TitanClient folder must include the embedded Java runtime at:
 java/titan-java-embedded.jar
 ```
 
-Then run either task:
+Then run:
 
 ```powershell
 .\gradlew.bat runViaTitan
@@ -112,15 +112,55 @@ cmake --build build --config Release --target controller
 
 `runViaTitan` is an alias for `runTitanClient`.
 
-The task builds the sample, copies it to
-`%USERPROFILE%\.titanclient\plugins`, and launches:
+The task builds the sample, stages it into a per-generation dev folder, writes
+`build/.titan/dev/<slug>/session.json`, and launches:
 
 ```text
-controller.exe --dev-mode --launch-new-client
+controller.exe --dev-mode --dev-manifest <session.json> --launch-new-client
 ```
 
-Set `TITAN_PLUGIN_DIR` or pass `-PtitanPluginDir=...` to override the staging
-directory.
+The dev tab name is derived automatically from the Gradle project name, so
+there is no plugin-id value to keep in sync. TitanClient loads every
+`@PluginDescriptor` found in the staged project JAR into that tab. Re-running
+the Gradle task from IntelliJ recycles only that project's dev tab; other
+Titan tabs keep running.
+
+The staged layout is:
+
+```text
+build/.titan/dev/<slug>/
+  session.json
+  gen.txt
+  session_id.txt
+  load/gen-N/<plugin>.jar
+```
+
+If two projects on the same machine produce the same derived tab name, pass a
+stable override with `-PtitanDevSessionSlug=...` or set
+`TITAN_DEV_SESSION_SLUG`.
+
+## Debug From IntelliJ
+
+Run the debug launch task:
+
+```powershell
+.\gradlew.bat runViaTitanDebug
+```
+
+This writes `java_debug_port` into the dev manifest and starts the embedded JVM
+with JDWP on port `5005`. In IntelliJ, create a **Remote JVM Debug** run
+configuration for `localhost:5005` and attach after the Titan tab starts.
+
+Use a different port when running more than one Java debug tab:
+
+```powershell
+.\gradlew.bat runViaTitanDebug "-PtitanJavaDebugPort=5006"
+```
+
+`TITAN_JAVA_DEBUG_PORT` is also supported. The old `stagePlugin` task still
+copies the JAR to `%USERPROFILE%\.titanclient\plugins` for manual DEV scans,
+and `TITAN_PLUGIN_DIR` / `-PtitanPluginDir=...` still override that legacy
+staging directory.
 
 ## API Packages
 

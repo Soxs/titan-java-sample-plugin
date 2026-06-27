@@ -59,6 +59,44 @@ tasks.named('jar') {
     archiveFileName = 'titan-sample-plugin.jar'
 }
 
+def trimOrNull = { String value ->
+    if (value == null) return null
+    def trimmed = value.trim()
+    return trimmed.isEmpty() ? null : trimmed
+}
+
+def slugify = { String value ->
+    def source = trimOrNull(value) ?: 'java-plugin'
+    def slug = source.toLowerCase(Locale.ROOT)
+        .replaceAll(/[^a-z0-9_.-]+/, '-')
+        .replaceAll(/^[-.]+/, '')
+        .replaceAll(/[-.]+$/, '')
+    if (slug.isEmpty()) {
+        slug = 'java-plugin'
+    }
+    if (slug.length() <= 63) {
+        return slug
+    }
+    def digest = java.security.MessageDigest.getInstance('SHA-1')
+        .digest(slug.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+        .encodeHex()
+        .toString()
+        .substring(0, 8)
+    def prefix = slug.substring(0, 54).replaceAll(/[-.]+$/, '')
+    if (prefix.isEmpty()) {
+        prefix = 'java-plugin'
+    }
+    "${prefix}-${digest}"
+}
+
+def explicitDevSessionSlug = trimOrNull(providers.gradleProperty('titanDevSessionSlug').orNull)
+    ?: trimOrNull(providers.environmentVariable('TITAN_DEV_SESSION_SLUG').orNull)
+    // Back-compat for early copies of this sample. Not required and no longer
+    // expected to match any @PluginDescriptor id.
+    ?: trimOrNull(providers.gradleProperty('titanPluginSlug').orNull)
+    ?: trimOrNull(providers.environmentVariable('TITAN_PLUGIN_SLUG').orNull)
+def titanDevSessionSlug = slugify(explicitDevSessionSlug ?: project.name)
+
 def titanPluginDir = file(providers.gradleProperty('titanPluginDir')
     .orElse(providers.environmentVariable('TITAN_PLUGIN_DIR'))
     .orElse(new File(System.getProperty('user.home'), '.titanclient/plugins').absolutePath)
@@ -212,9 +250,159 @@ def verifyTitanJavaEmbedded = { File controller ->
     }
 }
 
+def normalizedPath = { File file ->
+    file.toPath().toAbsolutePath().normalize().toString().replace('\\', '/')
+}
+
+def titanDevRoot = {
+    layout.buildDirectory.dir(".titan/dev/${titanDevSessionSlug}").get().asFile
+}
+
+def titanDevLoadRoot = {
+    new File(titanDevRoot(), 'load')
+}
+
+def titanDevSessionFile = {
+    new File(titanDevRoot(), 'session.json')
+}
+
+def titanDevSessionExists = {
+    titanDevSessionFile().isFile() ||
+        new File(titanDevRoot(), 'session_id.txt').isFile()
+}
+
+def ensureSessionId = {
+    def root = titanDevRoot()
+    root.mkdirs()
+    def sessionFile = new File(root, 'session_id.txt')
+    if (sessionFile.isFile()) {
+        def existing = sessionFile.text.trim()
+        if (existing ==~ /[0-9a-fA-F-]+/) {
+            return existing
+        }
+    }
+    def created = java.util.UUID.randomUUID().toString()
+    sessionFile.text = created + System.lineSeparator()
+    created
+}
+
+def readGeneration = {
+    def genFile = new File(titanDevRoot(), 'gen.txt')
+    if (!genFile.isFile()) return 0
+    try {
+        return Integer.parseInt(genFile.text.trim())
+    } catch (Exception ignored) {
+        return 0
+    }
+}
+
+def generationNumber = { File dir ->
+    def matcher = dir.name =~ /^gen-(\d+)$/
+    if (!matcher.matches()) return -1
+    Integer.parseInt(matcher.group(1))
+}
+
+def pruneStaleGenerations = { File loadRoot, int keep ->
+    if (!loadRoot.isDirectory()) return
+    def generations = loadRoot.listFiles()
+        ?.findAll { it.isDirectory() && generationNumber(it) >= 0 }
+        ?.sort { a, b -> generationNumber(b) <=> generationNumber(a) } ?: []
+    generations.drop(keep).each {
+        try {
+            project.delete(it)
+        } catch (Exception ex) {
+            logger.lifecycle("Keeping locked Titan dev generation ${it}: ${ex.message}")
+        }
+    }
+}
+
+def stageTitanDevGeneration = {
+    def sessionId = ensureSessionId()
+    def nextGeneration = readGeneration() + 1
+    def root = titanDevRoot()
+    def loadRoot = titanDevLoadRoot()
+    def devPluginDir = new File(loadRoot, "gen-${nextGeneration}")
+    def jarFile = tasks.named('jar').get().archiveFile.get().asFile
+
+    devPluginDir.mkdirs()
+    copy {
+        from jarFile
+        into devPluginDir
+    }
+    new File(root, 'gen.txt').text = nextGeneration.toString() + System.lineSeparator()
+    pruneStaleGenerations(loadRoot, 5)
+
+    logger.lifecycle("Staged ${jarFile.name} for Titan dev session ${sessionId} into ${devPluginDir}")
+    [
+        sessionId   : sessionId,
+        generation  : nextGeneration,
+        devPluginDir: devPluginDir,
+        jarFile     : jarFile
+    ]
+}
+
+def resolveJavaDebugPort = { Integer defaultPort ->
+    def raw = trimOrNull(providers.gradleProperty('titanJavaDebugPort').orNull)
+        ?: trimOrNull(providers.environmentVariable('TITAN_JAVA_DEBUG_PORT').orNull)
+    if (raw == null && defaultPort != null) return defaultPort
+    if (raw == null) return null
+    try {
+        def port = Integer.parseInt(raw)
+        if (port <= 0 || port > 65535) {
+            throw new NumberFormatException('port out of range')
+        }
+        return port
+    } catch (Exception ignored) {
+        throw new GradleException(
+            "titanJavaDebugPort/TITAN_JAVA_DEBUG_PORT must be an integer from 1 to 65535: ${raw}")
+    }
+}
+
+def writeDevSessionManifest = { Integer defaultDebugPort ->
+    def controller = resolveTitanController()
+    def root = titanDevRoot()
+    def generation = readGeneration()
+    if (generation <= 0) {
+        throw new GradleException('No staged Titan dev generation found. Run stageTitanDevPlugin first.')
+    }
+
+    def jarFile = tasks.named('jar').get().archiveFile.get().asFile
+    def devPluginDir = new File(titanDevLoadRoot(), "gen-${generation}")
+    def stagedJar = new File(devPluginDir, jarFile.name)
+    if (!stagedJar.isFile()) {
+        throw new GradleException("Staged plugin JAR was not found: ${stagedJar}")
+    }
+
+    def manifest = [
+        schema_version    : 1,
+        session_id        : ensureSessionId(),
+        slug              : titanDevSessionSlug,
+        source_root       : normalizedPath(projectDir),
+        build_config      : providers.gradleProperty('titanBuildConfig').orElse('Java').get(),
+        sdk_version       : 0,
+        titan_install_root: normalizedPath(controller.parentFile),
+        dev_plugin_dir    : normalizedPath(devPluginDir),
+        staged_jar        : normalizedPath(stagedJar),
+        loader_mode       : 'DebuggableLoadLibrary',
+        generation        : generation
+    ]
+
+    def debugPort = resolveJavaDebugPort(defaultDebugPort)
+    if (debugPort != null) {
+        manifest.java_debug_port = debugPort
+    }
+
+    root.mkdirs()
+    titanDevSessionFile().text =
+        groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(manifest)) +
+        System.lineSeparator()
+    def debugSuffix = debugPort == null ? '' : ", jdwp=${debugPort}"
+    logger.lifecycle("Wrote Titan dev session ${titanDevSessionFile()} (session=${titanDevSessionSlug}, gen=${generation}${debugSuffix})")
+}
+
 tasks.register('stagePlugin', Copy) {
     group = 'titan dev'
-    description = 'Build and stage this sample into the per-user TitanClient DEV plugin directory.'
+    description = 'Legacy: build and stage this sample into the per-user TitanClient DEV plugin directory.'
     dependsOn tasks.named('jar')
     from tasks.named('jar').flatMap { it.archiveFile }
     into titanPluginDir
@@ -223,15 +411,61 @@ tasks.register('stagePlugin', Copy) {
     }
 }
 
+tasks.register('stageTitanDevPlugin') {
+    group = 'titan dev'
+    description = 'Build and stage this plugin into a Titan dev-session generation directory.'
+    dependsOn tasks.named('jar')
+    outputs.upToDateWhen { false }
+    doLast {
+        stageTitanDevGeneration()
+    }
+}
+
+tasks.named('build') {
+    doLast {
+        if (!titanDevSessionExists()) return
+        try {
+            stageTitanDevGeneration()
+            writeDevSessionManifest(null)
+            logger.lifecycle("Refreshed active Titan dev session after build; click the in-tab refresh button to reload.")
+        } catch (Exception ex) {
+            logger.lifecycle("Skipped Titan dev-session refresh after build: ${ex.message}")
+        }
+    }
+}
+
+tasks.register('writeTitanDevSession') {
+    group = 'titan dev'
+    description = 'Write the Titan dev-session manifest for the latest staged Java plugin generation.'
+    dependsOn tasks.named('stageTitanDevPlugin')
+    outputs.upToDateWhen { false }
+    doLast {
+        writeDevSessionManifest(null)
+    }
+}
+
+tasks.register('writeTitanDevSessionDebug') {
+    group = 'titan dev'
+    description = 'Write the Titan dev-session manifest with JDWP enabled for the latest staged Java plugin generation.'
+    dependsOn tasks.named('stageTitanDevPlugin')
+    outputs.upToDateWhen { false }
+    doLast {
+        writeDevSessionManifest(5005)
+    }
+}
+
 tasks.register('runTitanClient', Exec) {
     group = 'titan dev'
-    description = 'Stage this sample and launch the installed TitanClient in DEV mode.'
-    dependsOn tasks.named('stagePlugin')
+    description = 'Stage this plugin and launch/recycle its dedicated TitanClient DEV tab.'
+    dependsOn tasks.named('writeTitanDevSession')
     doFirst {
         def controller = resolveTitanController()
         verifyTitanJavaEmbedded(controller)
         workingDir controller.parentFile
-        commandLine controller, '--dev-mode', '--launch-new-client'
+        commandLine controller, '--dev-mode',
+            '--dev-manifest', titanDevSessionFile(),
+            '--dev-session', titanDevSessionSlug,
+            '--launch-new-client'
     }
 }
 
@@ -239,4 +473,19 @@ tasks.register('runViaTitan') {
     group = 'titan dev'
     description = 'Alias for runTitanClient.'
     dependsOn tasks.named('runTitanClient')
+}
+
+tasks.register('runViaTitanDebug', Exec) {
+    group = 'titan dev'
+    description = 'Stage this plugin, launch/recycle its Titan DEV tab, and enable JDWP on port 5005 by default.'
+    dependsOn tasks.named('writeTitanDevSessionDebug')
+    doFirst {
+        def controller = resolveTitanController()
+        verifyTitanJavaEmbedded(controller)
+        workingDir controller.parentFile
+        commandLine controller, '--dev-mode',
+            '--dev-manifest', titanDevSessionFile(),
+            '--dev-session', titanDevSessionSlug,
+            '--launch-new-client'
+    }
 }
