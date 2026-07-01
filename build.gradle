@@ -4,7 +4,7 @@ plugins {
     // writeTitanDevSession, runViaTitan, runViaTitanDebug, ...) and the
     // post-build hot-reload refresh. See settings.gradle for where this
     // resolves from.
-    id 'net.titan.dev' version '0.1.0'
+    id 'net.titan.dev' version '0.1.1'
 }
 
 group = 'net.titan.plugins'
@@ -66,13 +66,14 @@ tasks.named('jar') {
 
 // The Titan dev session (gen-N staging, session.json manifest, launch/recycle
 // of a dedicated DEV tab, and the post-build hot-reload refresh) is provided by
-// the net.titan.dev plugin applied above. Set your TitanClient install path in
-// gradle.properties (titanClientRoot) and run `gradlew runViaTitan`.
+// the net.titan.dev plugin applied above. The template defaults to the
+// TitanLauncher sync repository in gradle.properties (titanClientRoot) and
+// resolves state.json to the current synced runtime. Run `gradlew runViaTitan`.
 //
 // Optional configuration (all values fall back to gradle.properties / env vars):
 //
 // titanDev {
-//     clientRoot = 'C:/Program Files/TitanClient'
+//     clientRoot = '%USERPROFILE%/.titanclient/repository'
 //     sessionSlug = 'titan-java-sample-plugin'
 //     javaDebugPort = 5005
 // }

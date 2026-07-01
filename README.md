@@ -22,7 +22,8 @@ Copy or fork this repository for a new Java plugin. Then:
 ## Requirements
 
 - Java 11 or newer.
-- TitanClient installed with the embedded Java runtime.
+- TitanLauncher run at least once so `%USERPROFILE%\.titanclient\repository`
+  points at a synced runtime with the embedded Java runtime.
 - A TitanClient account with the `feature.debug_mode` entitlement.
 
 The sample uses the published SDK dependency:
@@ -66,14 +67,16 @@ build\libs\titan-sample-plugin.jar
 
 ## Run In TitanClient
 
-Edit the included `gradle.properties` file and set `titanClientRoot` to the
-folder that directly contains `controller.exe`:
+The included `gradle.properties` defaults `titanClientRoot` to the
+TitanLauncher sync repository:
 
 ```properties
-titanClientRoot=C:/Program Files/TitanClient
+titanClientRoot=%USERPROFILE%/.titanclient/repository
 ```
 
-That TitanClient folder must include the embedded Java runtime at:
+The Gradle dev plugin reads `state.json` from that repository and resolves the
+current `releases/<version>` folder. That synced runtime must include the
+embedded Java runtime at:
 
 ```text
 java/titan-java-embedded.jar
@@ -85,19 +88,20 @@ Then run:
 .\gradlew.bat runViaTitan
 ```
 
-`runTitanClient`/`runViaTitan` will also try common TitanClient install folders
-and local source-build output folders if `titanClientRoot` is left blank.
+`runTitanClient`/`runViaTitan` will also try the launcher repository, common
+TitanClient install folders, and local source-build output folders if
+`titanClientRoot` is left blank.
 
 You can still use a one-off Gradle property:
 
 ```powershell
-.\gradlew.bat runViaTitan "-PtitanClientRoot=C:\Program Files\TitanClient"
+.\gradlew.bat runViaTitan "-PtitanClientRoot=%USERPROFILE%/.titanclient/repository"
 ```
 
 Or set it for the current PowerShell session:
 
 ```powershell
-$env:TITAN_CLIENT_ROOT = "C:\Program Files\TitanClient"
+$env:TITAN_CLIENT_ROOT = "%USERPROFILE%/.titanclient/repository"
 .\gradlew.bat runViaTitan
 ```
 
