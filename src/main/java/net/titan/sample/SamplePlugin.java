@@ -37,6 +37,11 @@ public final class SamplePlugin implements Plugin {
     private static final int ACTION_LOG_STATE = 1;
     private static final int ACTION_VERBOSE = 2;
 
+    // Active instance published for the @ConfigButton handler. The config
+    // proxy has no injected services, so a button's default-method body reaches
+    // plugin/game state through this shared static entry point.
+    private static volatile SamplePlugin active;
+
     private int panelClicks;
     private final OverlayPanel statusPanel = new OverlayPanel(
         "status", OverlayPanelAnchor.TOP_CENTER, 50)
@@ -57,12 +62,26 @@ public final class SamplePlugin implements Plugin {
 
     @Override
     public void onEnable() {
+        active = this;
         logger.info("Java sample enabled");
     }
 
     @Override
     public void onDisable() {
+        if (active == this) active = null;
         logger.info("Java sample disabled");
+    }
+
+    /// Static entry point invoked by the {@code @ConfigButton} handler in
+    /// {@link SamplePluginConfig#logStateNow()}. Runs on the game thread.
+    static void logStateFromButton() {
+        SamplePlugin plugin = active;
+        if (plugin != null) plugin.logStateNow();
+    }
+
+    private void logStateNow() {
+        logger.info("Config button: tick=" + client.tick()
+            + " npcs=" + Queries.npcs().count());
     }
 
     @Subscribe

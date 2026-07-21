@@ -1,6 +1,7 @@
 package net.titan.sample;
 
 import net.titan.api.config.Config;
+import net.titan.api.config.ConfigButton;
 import net.titan.api.config.ConfigGroup;
 import net.titan.api.config.ConfigItem;
 
@@ -43,6 +44,19 @@ public interface SamplePluginConfig extends Config {
     )
     default WatchedItem watchedItem() {
         return WatchedItem.COINS;
+    }
+
+    // A value-less action button. The method body runs when the button is
+    // clicked in the config UI (on the game thread, including the login
+    // screen). The config proxy has no injected services, so delegate to a
+    // static entry point the plugin publishes.
+    @ConfigButton(
+        keyName = "logStateNow",
+        name = "Log state now",
+        description = "Log the current tick and NPC count."
+    )
+    default void logStateNow() {
+        SamplePlugin.logStateFromButton();
     }
 
     enum WatchedItem {
