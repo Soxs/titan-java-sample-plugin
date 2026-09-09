@@ -8,6 +8,7 @@ import net.titan.api.NPC;
 import net.titan.api.eventbus.Subscribe;
 import net.titan.api.events.ConfigChanged;
 import net.titan.api.events.GameTick;
+import net.titan.api.events.OverheadTextChanged;
 import net.titan.api.overlay.Overlay;
 import net.titan.api.overlay.OverlayLayer;
 import net.titan.api.overlay.OverlayPanel;
@@ -87,6 +88,17 @@ public final class SamplePlugin implements Plugin {
     @Subscribe
     public void onConfigChanged(ConfigChanged event) {
         logger.info("Setting " + event.key() + "=" + config.verbose());
+    }
+
+    @Subscribe
+    public void onOverheadTextChanged(OverheadTextChanged event) {
+        if (!config.verbose()) return;
+        // The event actor and text are captured together. Retaining this String
+        // is safe even after the actor disappears or its overhead expires.
+        String snapshot = event.getOverheadText();
+        logger.info("Overhead text: actor=" + event.getActor().hashIndex()
+            + " worldView=" + event.getActor().worldViewId()
+            + " characters=" + snapshot.length());
     }
 
     @Subscribe
