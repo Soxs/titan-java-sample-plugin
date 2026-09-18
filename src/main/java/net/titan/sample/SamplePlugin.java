@@ -87,7 +87,14 @@ public final class SamplePlugin implements Plugin {
 
     @Subscribe
     public void onConfigChanged(ConfigChanged event) {
-        logger.info("Setting " + event.key() + "=" + config.verbose());
+        // npcActions() returns a fresh boolean[][] snapshot on every call, so
+        // read it once here rather than per cell in a hot loop.
+        boolean[][] actions = config.npcActions();
+        logger.info("Setting " + event.key() + "=" + config.verbose()
+            + " guardHighlight="
+            + actions[SamplePluginConfig.GUARD][SamplePluginConfig.HIGHLIGHT]
+            + " chickenTile="
+            + actions[SamplePluginConfig.CHICKEN][SamplePluginConfig.TILE]);
     }
 
     @Subscribe

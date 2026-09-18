@@ -4,6 +4,7 @@ import net.titan.api.config.Config;
 import net.titan.api.config.ConfigButton;
 import net.titan.api.config.ConfigGroup;
 import net.titan.api.config.ConfigItem;
+import net.titan.api.config.MatrixRow;
 
 @ConfigGroup("java_sample")
 public interface SamplePluginConfig extends Config {
@@ -36,6 +37,30 @@ public interface SamplePluginConfig extends Config {
     default int maxNpcDistance() {
         return 10;
     }
+
+    // A checkbox grid. Each row names the columns it actually has, so the two
+    // columns Chicken and Goblin omit render as blank gaps and can never be
+    // checked. `checked` seeds the initial state. Unlike every other config
+    // item this method is ABSTRACT: the grid's cells and defaults come from the
+    // annotation, so there is no body to read a default from.
+    // Read a cell as config.npcActions()[GUARD][HIGHLIGHT].
+    @ConfigItem(
+        keyName = "npcActions",
+        name = "NPC actions",
+        description = "Per-NPC toggles. Chickens cannot be announced.",
+        columns = {"Highlight", "Announce", "Tile"},
+        rows = {
+            @MatrixRow(label = "Guard", cells = {"Highlight", "Announce", "Tile"},
+                       checked = {"Highlight"}),
+            @MatrixRow(label = "Goblin", cells = {"Highlight", "Announce"}),
+            @MatrixRow(label = "Chicken", cells = {"Highlight", "Tile"},
+                       checked = {"Tile"}),
+        }
+    )
+    boolean[][] npcActions();
+
+    int GUARD = 0, GOBLIN = 1, CHICKEN = 2;
+    int HIGHLIGHT = 0, ANNOUNCE = 1, TILE = 2;
 
     @ConfigItem(
         keyName = "watchedItem",
