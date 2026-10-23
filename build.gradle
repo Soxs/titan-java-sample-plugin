@@ -4,7 +4,7 @@ plugins {
     // writeTitanDevSession, runViaTitan, runViaTitanDebug, ...) and the
     // post-build hot-reload refresh. See settings.gradle for where this
     // resolves from.
-    id 'net.titan.dev' version '0.1.1'
+    id 'net.titan.dev' version '0.1.2'
 }
 
 group = 'net.titan.plugins'
