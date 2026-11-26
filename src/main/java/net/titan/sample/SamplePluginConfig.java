@@ -31,6 +31,7 @@ public interface SamplePluginConfig extends Config {
         keyName = "maxNpcDistance",
         name = "Max NPC distance",
         description = "Highlight NPCs within this radius.",
+        units = "tiles",
         min = 1,
         max = 32
     )

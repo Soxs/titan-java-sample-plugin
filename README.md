@@ -126,7 +126,7 @@ controller.exe --dev-mode --dev-manifest <session.json> --launch-new-client
 The dev tab name is derived automatically from the Gradle project name, so
 there is no plugin-id value to keep in sync. TitanClient loads every
 `@PluginDescriptor` found in the staged project JAR into that tab. Re-running
-the Gradle task from IntelliJ recycles only that project's dev tab; other
+the Gradle task from IntelliJ hot reloads only that project's dev tab; other
 Titan tabs keep running.
 
 The staged layout is:
